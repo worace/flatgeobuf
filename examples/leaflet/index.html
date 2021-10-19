@@ -5,7 +5,8 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/flatgeobuf@3.17.5/dist/flatgeobuf-geojson.min.js"></script>
     <script src="https://unpkg.com/json-formatter-js"></script>
-
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta content="utf-8" http-equiv="encoding">
 </head>
 <body>
 <style>
@@ -29,7 +30,8 @@
     </style>
     <div id="map"></div>
     <script>
-        document.addEventListener("DOMContentLoaded", async () => { 
+        document.addEventListener("DOMContentLoaded", async () => {
+            console.log('domloaded');
             // basic OSM Leaflet map
             let map = L.map('map').setView([39, -98], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -39,23 +41,27 @@
 
             // optionally show some meta-data about the FGB file
             function handleHeaderMeta(headerMeta) {
+              console.log('handle header meta');
+              console.log(headerMeta);
                 const header = document.getElementById('header')
                 const formatter = new JSONFormatter(headerMeta, 10)
                 header.appendChild(formatter.render())
             }
 
-            const response = await fetch('/test/data/UScounties.fgb');
+            const response = await fetch('http://localhost:8000/test.fgb');
             for await (let feature of flatgeobuf.deserialize(response.body, undefined, handleHeaderMeta)) {
+              console.log('deserialize feature');
+              console.log(feature);
                 // Leaflet styling
-                const defaultStyle = { 
-                    color: 'blue', 
-                    weight: 2, 
+                const defaultStyle = {
+                    color: 'blue',
+                    weight: 2,
                     fillOpacity: 0.2,
                 };
 
                 // Add the feature to the map
-                L.geoJSON(feature, { 
-                    style: defaultStyle 
+                L.geoJSON(feature, {
+                    style: defaultStyle
                 }).on({
                     // highlight on hover
                     'mouseover': function(e) {
@@ -83,7 +89,7 @@
     <p>
     This basic example shows how to render all the features in a FlatGeobuf
     onto a <a href="https://leafletjs.com">Leaflet</a> map.  It shows
-    per-feature properties when you click on each feature.  
+    per-feature properties when you click on each feature.
     </p>
 
     <div id="header">
