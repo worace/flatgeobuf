@@ -136,6 +136,7 @@ export function buildFeature(
     );
 
   const geometryOffset = buildGeometry(builder, geometry);
+  console.log('wrote geometry, offset:', geometryOffset);
   Feature.startFeature(builder);
   Feature.addGeometry(builder, geometryOffset);
   if (propertiesOffset) Feature.addProperties(builder, propertiesOffset);
