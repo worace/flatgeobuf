@@ -52,7 +52,7 @@
           /* const response = await fetch('http://localhost:8000/test.fgb'); */
             for await (let feature of flatgeobuf.deserialize(response.body, undefined, handleHeaderMeta)) {
               console.log('deserialize feature');
-              console.log(feature);
+              console.log(JSON.stringify(feature));
                 // Leaflet styling
                 const defaultStyle = {
                     color: 'blue',
