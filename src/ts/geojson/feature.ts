@@ -5,29 +5,30 @@ import { fromGeometry, IGeoJsonGeometry } from './geometry.js';
 import { parseProperties, IFeature } from '../generic/feature.js';
 
 export interface IGeoJsonProperties {
-    [key: string]: boolean | number | string | any;
+  [key: string]: boolean | number | string | any;
 }
 
 export interface IGeoJsonFeature extends IFeature {
-    type: string;
-    geometry: IGeoJsonGeometry;
-    properties?: IGeoJsonProperties;
+  type: string;
+  geometry: IGeoJsonGeometry;
+  properties?: IGeoJsonProperties;
 }
 
 export function fromFeature(
-    feature: Feature,
-    header: HeaderMeta
+  feature: Feature,
+  header: HeaderMeta
 ): IGeoJsonFeature {
-    const columns = header.columns;
-    const geometry = fromGeometry(
-        feature.geometry() as Geometry,
-        header.geometryType
-    );
-    const geoJsonfeature: IGeoJsonFeature = {
-        type: 'Feature',
-        geometry,
-    };
-    if (columns && columns.length > 0)
-        geoJsonfeature.properties = parseProperties(feature, columns);
-    return geoJsonfeature;
+  console.log('geojson/feature.js fromFeature ');
+  const columns = header.columns;
+  const geometry = fromGeometry(
+    feature.geometry() as Geometry,
+    header.geometryType
+  );
+  const geoJsonfeature: IGeoJsonFeature = {
+    type: 'Feature',
+    geometry,
+  };
+  if (columns && columns.length > 0)
+    geoJsonfeature.properties = parseProperties(feature, columns);
+  return geoJsonfeature;
 }

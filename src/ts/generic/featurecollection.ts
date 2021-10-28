@@ -61,6 +61,7 @@ export function deserialize(
   fromFeature: FromFeatureFn,
   headerMetaFn?: HeaderMetaFn
 ): IFeature[] {
+  console.log('feature coll deserialize');
   if (!bytes.subarray(0, 3).every((v, i) => magicbytes[i] === v))
     throw new Error('Not a FlatGeobuf file');
 
@@ -71,6 +72,9 @@ export function deserialize(
   const headerMeta = HeaderMeta.fromByteBuffer(bb);
   if (headerMetaFn) headerMetaFn(headerMeta);
 
+  console.log('deserialized headermeta:');
+  console.log(headerMeta);
+
   let offset = magicbytes.length + SIZE_PREFIX_LEN + headerLength;
 
   const { indexNodeSize, featuresCount } = headerMeta;
@@ -79,8 +83,10 @@ export function deserialize(
   const features: IFeature[] = [];
   while (offset < bb.capacity()) {
     const featureLength = bb.readUint32(offset);
+    console.log('featurelen: ', featureLength);
     bb.setPosition(offset + SIZE_PREFIX_LEN);
     const feature = Feature.getRootAsFeature(bb);
+    console.log('feature: ', feature);
     features.push(fromFeature(feature, headerMeta));
     offset += SIZE_PREFIX_LEN + featureLength;
   }
