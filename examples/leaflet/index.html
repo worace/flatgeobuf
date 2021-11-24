@@ -48,9 +48,15 @@
                 header.appendChild(formatter.render())
             }
 
-            const response = await fetch('http://localhost:8000/polygon.fgb');
+            const urlSearchParams = new URLSearchParams(window.location.search);
+            const params = Object.fromEntries(urlSearchParams.entries());
+            const fgbFile = params['file'] || 'test.fgb';
+            console.log(fgbFile);
+            console.log(params);
+            const response = await fetch('http://localhost:8000/' + fgbFile);
           /* const response = await fetch('http://localhost:8000/test.fgb'); */
             for await (let feature of flatgeobuf.deserialize(response.body, undefined, handleHeaderMeta)) {
+              console.log(feature);
               console.log('deserialize feature');
               console.log(JSON.stringify(feature));
                 // Leaflet styling
@@ -59,6 +65,11 @@
                     weight: 2,
                     fillOpacity: 0.2,
                 };
+
+              const rows = Object.entries(feature.properties).map(([k,v]) => {
+                return `<li><em>${k}</em><span>${v}</span></li>`
+              }).join("");
+              console.log(rows);
 
                 // Add the feature to the map
                 L.geoJSON(feature, {
@@ -82,7 +93,7 @@
                 })
                 // show some per-feature properties when clicking on the feature
               /* .bindPopup(`<h1>${feature.properties["NAME"]} ${feature.properties["LSAD"]}, ${feature.properties["STATE"]}</h1>`) */
-                .bindPopup('<h1>example feature</h1>')
+                .bindPopup(`<div><h2>Feature</h2><ul>${rows}</ul></div>`)
                 .addTo(map);
             }
         });
