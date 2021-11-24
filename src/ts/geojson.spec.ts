@@ -36,29 +36,33 @@ describe('geojson module', () => {
         }]
       }
 
-      console.log("Input GeoJSON:")
-      console.log(JSON.stringify(expected, undefined, 1))
+      // console.log("Input GeoJSON:")
+      // console.log(JSON.stringify(expected, undefined, 1))
 
-      const flatgeobuf = serialize(expected)
-      console.log(`Serialized input GeoJson into FlatGeobuf (${flatgeobuf.length} bytes)`)
+      // const flatgeobuf = serialize(expected)
+      // console.log(`Serialized input GeoJson into FlatGeobuf (${flatgeobuf.length} bytes)`)
 
-      console.log('writing to output /tmp/node.fgb');
-      writeFileSync('/tmp/node.fgb', Buffer.from(flatgeobuf));
-
-
-      const actual = deserialize(flatgeobuf)
-
-      console.log('FlatGeobuf deserialized back into GeoJSON:')
-      console.log(JSON.stringify(actual, undefined, 1))
+      // console.log('writing to output /tmp/node.fgb');
+      // writeFileSync('/tmp/node.fgb', Buffer.from(flatgeobuf));
 
 
-      const geoq = readFileSync('/tmp/test.fgb');
-      console.log('/tmp/test.fgb:');
-      console.log(geoq);
+      // const actual = deserialize(flatgeobuf)
+
+      // console.log('FlatGeobuf deserialized back into GeoJSON:')
+      // console.log(JSON.stringify(actual, undefined, 1))
+
+
+      const testFile = '/tmp/hetero.fgb';
+      const geoq = readFileSync(testFile);
+      console.log(testFile);
+      // console.log(geoq);
 
 
       const geoqDeSer = deserialize(geoq);
-      console.log('geoq deserialized:');
+      console.log('geoq deserialized num features:', geoqDeSer['features'].length);
+      geoqDeSer['features'].forEach((f) => {
+        console.log('geom type:', f['geometry']['type']);
+      });
 
       console.log(JSON.stringify(geoqDeSer));
     });
