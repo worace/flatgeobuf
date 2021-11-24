@@ -1,6 +1,8 @@
 use crate::feature_generated::*;
 use crate::header_generated::*;
 use byteorder::{ByteOrder, LittleEndian};
+use flatbuffers::ForwardsUOffset;
+use flatbuffers::Vector;
 use geozero::error::{GeozeroError, Result};
 use geozero::GeozeroGeometry;
 use geozero::{ColumnValue, GeomProcessor, PropertyProcessor};
@@ -74,11 +76,17 @@ impl GeozeroGeometry for FgbFeature {
 impl geozero::FeatureProperties for FgbFeature {
     /// Process feature properties.
     fn process_properties<P: PropertyProcessor>(&self, reader: &mut P) -> Result<bool> {
-        let columns_meta_res_base = self.header().columns();
+        let columns_meta_res_base: Option<Vector<ForwardsUOffset<Column>>> =
+            self.header().columns();
+        if columns_meta_res_base.is_none() {
+            return Ok(false);
+        }
         dbg!(&columns_meta_res_base);
-        let columns_meta_res = columns_meta_res_base.ok_or(GeozeroError::GeometryFormat);
-        dbg!(&columns_meta_res);
-        let columns_meta = columns_meta_res?;
+        let columns_meta = columns_meta_res_base.unwrap();
+
+        // let columns_meta_res = columns_meta_res_base.ok_or(GeozeroError::GeometryFormat);
+        // dbg!(&columns_meta_res);
+        // let columns_meta = columns_meta_res?;
         let mut finish = false;
         if let Some(properties) = self.fbs_feature().properties() {
             let mut offset = 0;
