@@ -105,6 +105,8 @@ export function fromGeometry(
 ): IGeoJsonGeometry {
   console.log('geojson/geometry.ts fromGeometry')
   console.log(geometry);
+  console.log('For geometry type:');
+  console.log(type, '(', GeometryType[type], ')');
   if (type === GeometryType.GeometryCollection) {
     const geometries = [];
     for (let i = 0; i < geometry.partsLength(); i++) {
