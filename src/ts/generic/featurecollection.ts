@@ -34,7 +34,7 @@ export function serialize(features: IFeature[]): Uint8Array {
         if (!f.getProperties)
             throw new Error('Missing getProperties implementation');
         return buildFeature(
-            parseGeometry(f.getGeometry(), headerMeta.geometryType),
+            parseGeometry(f.getGeometry()),
             f.getProperties(),
             headerMeta
         );

@@ -21,10 +21,7 @@ export function fromFeature(
     console.log('geojson/feature.js fromFeature ');
     console.log('feature: ', feature);
     const columns = header.columns;
-    const geometry = fromGeometry(
-        feature.geometry() as Geometry,
-        header.geometryType
-    );
+    const geometry = fromGeometry(feature.geometry() as Geometry);
     const geoJsonfeature: IGeoJsonFeature = {
         type: 'Feature',
         geometry,

@@ -80,13 +80,12 @@ export function flat(
     }
 }
 
-export function parseGeometry(
-    geometry: ISimpleGeometry,
-    type: GeometryType
-): IParsedGeometry {
+export function parseGeometry(geometry: ISimpleGeometry): IParsedGeometry {
     let xy: number[] | undefined;
     let ends: number[] | undefined;
     let parts: IParsedGeometry[] | undefined;
+    const type = toGeometryType(geometry.getType());
+    console.log('generic/geometry.ts - parse geometry, type:', type);
     if (type === GeometryType.MultiLineString) {
         if (geometry.getFlatCoordinates) xy = geometry.getFlatCoordinates();
         const mlsEnds = (geometry as IMultiLineString).getEnds();
@@ -98,9 +97,7 @@ export function parseGeometry(
         if (pEnds.length > 1) ends = pEnds.map((e) => e >> 1);
     } else if (type === GeometryType.MultiPolygon) {
         const mp = geometry as IMultiPolygon;
-        parts = mp
-            .getPolygons()
-            .map((p) => parseGeometry(p, GeometryType.Polygon));
+        parts = mp.getPolygons().map((p) => parseGeometry(p));
     } else {
         if (geometry.getFlatCoordinates) xy = geometry.getFlatCoordinates();
     }
