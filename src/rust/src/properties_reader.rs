@@ -74,7 +74,9 @@ impl GeozeroGeometry for FgbFeature {
 impl geozero::FeatureProperties for FgbFeature {
     /// Process feature properties.
     fn process_properties<P: PropertyProcessor>(&self, reader: &mut P) -> Result<bool> {
-        let columns_meta_res = self.header().columns().ok_or(GeozeroError::GeometryFormat);
+        let columns_meta_res_base = self.header().columns();
+        dbg!(&columns_meta_res_base);
+        let columns_meta_res = columns_meta_res_base.ok_or(GeozeroError::GeometryFormat);
         dbg!(&columns_meta_res);
         let columns_meta = columns_meta_res?;
         let mut finish = false;
