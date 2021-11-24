@@ -650,7 +650,7 @@ impl PackedRTree {
     }
 
     pub fn index_size(num_items: usize, node_size: u16) -> usize {
-        if (node_size == 0) {
+        if node_size == 0 {
             return 0;
         }
         assert!(node_size >= 2, "Node size must be at least 2");

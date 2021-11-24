@@ -33,10 +33,14 @@ impl geozero::FeatureAccess for FgbFeature {}
 
 impl GeozeroGeometry for FgbFeature {
     fn process_geom<P: GeomProcessor>(&self, processor: &mut P) -> Result<()> {
-        let geometry = self
+        eprintln!("process fgb feature geom");
+        dbg!(self.header());
+        let g_res = self
             .fbs_feature()
             .geometry()
-            .ok_or(GeozeroError::GeometryFormat)?;
+            .ok_or(GeozeroError::GeometryFormat);
+        dbg!(&g_res);
+        let geometry = g_res?;
         let geometry_type = self.header().geometry_type();
         geometry.process(processor, geometry_type)
     }
@@ -70,10 +74,9 @@ impl GeozeroGeometry for FgbFeature {
 impl geozero::FeatureProperties for FgbFeature {
     /// Process feature properties.
     fn process_properties<P: PropertyProcessor>(&self, reader: &mut P) -> Result<bool> {
-        let columns_meta = self
-            .header()
-            .columns()
-            .ok_or(GeozeroError::GeometryFormat)?;
+        let columns_meta_res = self.header().columns().ok_or(GeozeroError::GeometryFormat);
+        dbg!(&columns_meta_res);
+        let columns_meta = columns_meta_res?;
         let mut finish = false;
         if let Some(properties) = self.fbs_feature().properties() {
             let mut offset = 0;
@@ -84,6 +87,7 @@ impl geozero::FeatureProperties for FgbFeature {
                 offset += size_of::<u16>();
                 if i >= columns_meta.len() {
                     // NOTE: reading also fails if column._type is different from effective entry
+                    eprintln!("Properties length overflow");
                     return Err(GeozeroError::GeometryFormat);
                 }
                 let column = &columns_meta.get(i);

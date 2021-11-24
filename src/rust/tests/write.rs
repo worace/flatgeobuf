@@ -130,11 +130,30 @@ fn json_to_fgb() -> Result<()> {
 
 #[test]
 fn geozero_to_fgb() -> Result<()> {
+    use geozero::geojson::GeoJsonWriter;
+
     let mut fgb = FgbWriter::create("countries", GeometryType::MultiPolygon, |_, _| {})?;
     let mut fin = BufReader::new(File::open("../../test/data/countries.geojson")?);
     let mut reader = GeoJsonReader(&mut fin);
     reader.process(&mut fgb)?;
-    let mut fout = BufWriter::new(tempfile()?);
+    let tf = File::create("/tmp/test.fgb")?;
+    dbg!(&tf);
+    let mut fout = BufWriter::new(tf);
     fgb.write(&mut fout)?;
+    fout.flush()?;
+
+    println!("read fgb");
+    let mut reader = BufReader::new(File::open("/tmp/test.fgb")?);
+    let mut fgb_reader = FgbReader::open(&mut reader)?;
+    fgb_reader.select_all()?;
+    println!("selected all!");
+
+    let mut fout = BufWriter::new(File::create("/tmp/geojson_from_fgb.json")?);
+    let mut json = GeoJsonWriter::new(&mut fout);
+    println!("process features");
+    let res = fgb_reader.process_features(&mut json);
+    println!("processed all...!");
+    dbg!(&res);
+    res.unwrap();
     Ok(())
 }
