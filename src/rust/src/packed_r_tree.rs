@@ -301,6 +301,11 @@ impl PackedRTree {
     fn generate_level_bounds(num_items: usize, node_size: u16) -> Vec<(usize, usize)> {
         assert!(node_size >= 2, "Node size must be at least 2");
         assert!(num_items > 0, "Cannot create empty tree");
+
+        // num_items has to be less than
+        // u64 (for 64bit) - num_items / node_size (up to 2^16)
+
+        // From C#: "limit so that resulting size in bytes can be represented by ulong"
         assert!(
             num_items <= usize::MAX - ((num_items / node_size as usize) * 2),
             "Number of items too large"
@@ -385,6 +390,7 @@ impl PackedRTree {
         Ok(())
     }
 
+    // node includes offset: byte for start of element in feature section
     pub fn build(nodes: &Vec<NodeItem>, extent: &NodeItem, node_size: u16) -> Result<PackedRTree> {
         let mut tree = PackedRTree {
             extent: extent.clone(),
