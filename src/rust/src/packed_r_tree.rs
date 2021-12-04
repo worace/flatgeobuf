@@ -304,6 +304,18 @@ impl PackedRTree {
 
         // num_items has to be less than
         // u64 (for 64bit) - num_items / node_size (up to 2^16)
+        // https://github.com/mourner/flatbush
+        // https://github.com/mourner/flatbush/blob/master/index.js
+        // https://en.wikipedia.org/wiki/Hilbert_R-tree#Packed_Hilbert_R-trees
+        // "The Hilbert value of a rectangle is defined as the Hilbert value of its center"
+
+        // Roussopoulos and Leifker
+        // Direct spatial search on pictorial databases using packed R-trees
+        // https://dl.acm.org/doi/10.1145/971699.318900
+
+        // Kamel and Faloustos
+        // On packing R-trees
+        // https://dl.acm.org/doi/10.1145/170088.170403
 
         // From C#: "limit so that resulting size in bytes can be represented by ulong"
         assert!(
