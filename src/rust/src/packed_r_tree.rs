@@ -433,11 +433,18 @@ impl PackedRTree {
         level_num_nodes.reverse(); // 1, 12, 179
         dbg!(&level_offsets);
         dbg!(&level_num_nodes);
+
+        // Build [start,end) bounds of the node indexes for each level
+        // [0, 1),  [1, 13),  [13, 192)
+        // 1 node   12 nodes  179 nodes (leafs)
         let mut level_bounds = Vec::with_capacity(level_num_nodes.len());
         for i in 0..level_num_nodes.len() {
+            dbg!(&level_bounds);
             level_bounds.push((level_offsets[i], level_offsets[i] + level_num_nodes[i]));
         }
+        dbg!(&level_bounds);
         level_bounds.reverse();
+        dbg!(&level_bounds);
         level_bounds
     }
 
