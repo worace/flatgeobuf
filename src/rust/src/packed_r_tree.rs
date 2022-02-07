@@ -298,9 +298,33 @@ impl PackedRTree {
         Ok(())
     }
 
+    // node includes offset: byte for start of element in feature section
+    pub fn build(nodes: &Vec<NodeItem>, extent: &NodeItem, node_size: u16) -> Result<PackedRTree> {
+        // 1. Make vector of size = num nodes containing empty node items
+        // 2. Level bounds...
+        let mut tree = PackedRTree {
+            extent: extent.clone(),
+            node_items: Vec::new(),
+            num_items: nodes.len(),
+            num_nodes: 0,
+            node_size: 0,
+            level_bounds: Vec::new(),
+        };
+        tree.init(node_size)?;
+        for i in 0..tree.num_items {
+            tree.node_items[(tree.num_nodes - tree.num_items + i)] = nodes[i].clone();
+        }
+        tree.generate_nodes();
+        Ok(tree)
+    }
+
     fn generate_level_bounds(num_items: usize, node_size: u16) -> Vec<(usize, usize)> {
         assert!(node_size >= 2, "Node size must be at least 2");
         assert!(num_items > 0, "Cannot create empty tree");
+
+        dbg!("making rtree levels");
+        dbg!(num_items);
+        dbg!(node_size);
 
         // num_items has to be less than
         // u64 (for 64bit) - num_items / node_size (up to 2^16)
@@ -324,27 +348,91 @@ impl PackedRTree {
         );
 
         // number of nodes per level in bottom-up order
+        eprintln!("generate_level_bounds: start 'level_num_nodes'");
         let mut level_num_nodes: Vec<usize> = Vec::new();
         let mut n = num_items;
         let mut num_nodes = n;
         level_num_nodes.push(n);
+        dbg!(&level_num_nodes);
+        dbg!(&n);
+        dbg!(&num_nodes);
+        // level_num_nodes: contains numer of nodes per level starting
+        //   with the bottom level, which contains only leaf nodes, i.e.
+        //   individual features
+        // n: goes from total number of features (bottom level)
+        //    up to 1, reducing per level by factor of node_size
+        //    e.g.
+        //    n = 179
+        //    n = (179 + (16 - 1)) / 16 = 12 --> takes 12 16-item tree nodes to hold 179 leaf items
+        //    level_num_nodes = [179, 12];
+        //    -----iter 2
+        //    n = (12 + (16 - 1)) / 16 = 1
+        //    level_num_nodes = [179, 12, 1];
+        //      * reached n == 1, so stop here. this is our tree layout
+        //               <root>
+        //       /1         |2      ...     \12
+        // /1.1...\1.16   /2.1...\2.16     /12.1...\12.3
+        //                                 (12 * 16 - 179 = 13)
+        //                                 13 slots open in last tree node
         loop {
             n = (n + node_size as usize - 1) / node_size as usize;
             num_nodes += n;
             level_num_nodes.push(n);
+            dbg!(&level_num_nodes);
+            dbg!(n);
+            dbg!(num_nodes);
+            // n == 1 means you got to the root of the tree
             if n == 1 {
                 break;
             }
         }
+
+        ////////////////////////////////
+        // level_num_nodes END
+        // num items: 179 (total number of features)
+        // level_num_nodes: [179, 12, 1]
+        // num_nodes: 179 + 12 + 1 = 192
+        ////////////////////////////////
         // bounds per level in reversed storage order (top-down)
+        eprintln!("######################");
+        eprintln!("######################");
+        eprintln!("######################");
+        eprintln!("build level bounds in top-down order");
+        // make vec to hold the offset of each level, same
+        // [179, 12, 1] -> [?, ?, ?]
         let mut level_offsets: Vec<usize> = Vec::with_capacity(level_num_nodes.len());
-        n = num_nodes;
-        for size in &level_num_nodes {
-            level_offsets.push(n - size);
-            n -= size;
+        n = num_nodes; // 192
+        eprintln!("starting level offsets:");
+        dbg!(&level_offsets);
+        dbg!(n);
+
+        let mut remaining_nodes = num_nodes;
+        // Find node offsets per level going "right to left" from
+        // bottom of tree to top
+        // num_nodes_in_level
+        // 179 -> 12 -> 1
+        // level_offsets:
+        // 13 -> 1 -> 0
+        for num_nodes_in_level in &level_num_nodes {
+            dbg!(num_nodes_in_level);
+            // Offset for this level is the number of previous nodes
+            // it took to get to this level, i.e.
+            // number of "remaining" total nodes - the number in this level
+            // so...
+            // level 3 offset = 192 - 179 = 13
+            // level 2 offset = 13 - 12 = 1
+            // level 1 offset = 1 - 1 = 0 (should always be 0)
+            remaining_nodes -= num_nodes_in_level;
+            level_offsets.push(remaining_nodes);
+            dbg!(&level_offsets);
+            dbg!(remaining_nodes);
         }
-        level_offsets.reverse();
-        level_num_nodes.reverse();
+
+        eprintln!("......Reverse Level Trackers......");
+        level_offsets.reverse(); // 0, 1, 13
+        level_num_nodes.reverse(); // 1, 12, 179
+        dbg!(&level_offsets);
+        dbg!(&level_num_nodes);
         let mut level_bounds = Vec::with_capacity(level_num_nodes.len());
         for i in 0..level_num_nodes.len() {
             level_bounds.push((level_offsets[i], level_offsets[i] + level_num_nodes[i]));
@@ -400,24 +488,6 @@ impl PackedRTree {
             pos += size_of::<NodeItem>();
         }
         Ok(())
-    }
-
-    // node includes offset: byte for start of element in feature section
-    pub fn build(nodes: &Vec<NodeItem>, extent: &NodeItem, node_size: u16) -> Result<PackedRTree> {
-        let mut tree = PackedRTree {
-            extent: extent.clone(),
-            node_items: Vec::new(),
-            num_items: nodes.len(),
-            num_nodes: 0,
-            node_size: 0,
-            level_bounds: Vec::new(),
-        };
-        tree.init(node_size)?;
-        for i in 0..tree.num_items {
-            tree.node_items[(tree.num_nodes - tree.num_items + i)] = nodes[i].clone();
-        }
-        tree.generate_nodes();
-        Ok(tree)
     }
 
     pub fn from_buf(data: &mut dyn Read, num_items: usize, node_size: u16) -> Result<PackedRTree> {

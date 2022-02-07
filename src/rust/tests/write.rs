@@ -148,12 +148,13 @@ fn geozero_to_fgb() -> Result<()> {
     fgb_reader.select_all()?;
     println!("selected all!");
 
-    let mut fout = BufWriter::new(File::create("/tmp/geojson_from_fgb.json")?);
-    let mut json = GeoJsonWriter::new(&mut fout);
-    println!("process features");
-    let res = fgb_reader.process_features(&mut json);
-    println!("processed all...!");
-    dbg!(&res);
-    res.unwrap();
+    // let mut fout = BufWriter::new(File::create("/tmp/geojson_from_fgb.json")?);
+    // let mut json = GeoJsonWriter::new(&mut fout);
+    // println!("process features");
+    // let res = fgb_reader.process_features(&mut json);
+    // println!("processed all...!");
+    // dbg!(&res);
+    // res.unwrap();
+    assert_eq!(1, 2);
     Ok(())
 }
