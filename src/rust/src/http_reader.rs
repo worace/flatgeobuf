@@ -36,7 +36,7 @@ pub(crate) fn from_http_err(error: HttpError) -> GeozeroError {
 
 impl HttpFgbReader {
     pub async fn open(url: &str) -> Result<HttpFgbReader> {
-        trace!("starting: opening http reader, reading header");
+        eprintln!("starting: opening http reader, reading header");
         let mut client = BufferedHttpRangeClient::new(&url);
 
         // Because we use a buffered HTTP reader, anything extra we fetch here can
@@ -56,12 +56,13 @@ impl HttpFgbReader {
                 .map(|i| assumed_branching_factor.pow(i) * std::mem::size_of::<NodeItem>() as usize)
                 .sum()
         };
+        eprintln!("pre-fetched {:?} index bytes", prefetch_index_bytes);
 
         // In reality, the header is probably less than half this size, but better to overshoot and
         // fetch an extra kb rather than have to issue a second request.
         let assumed_header_size = 2024;
         let min_req_size = assumed_header_size + prefetch_index_bytes;
-        debug!("fetching header. min_req_size: {} (assumed_header_size: {}, prefetched_index_bytes: {})", min_req_size, assumed_header_size, prefetch_index_bytes);
+        eprintln!("fetching header. min_req_size: {} (assumed_header_size: {}, prefetched_index_bytes: {})", min_req_size, assumed_header_size, prefetch_index_bytes);
 
         let bytes = client
             .get_range(0, 8, min_req_size)
@@ -77,6 +78,7 @@ impl HttpFgbReader {
                 .map_err(from_http_err)?,
         );
         let header_size = LittleEndian::read_u32(&bytes) as usize;
+        eprintln!("header size: {:?}", header_size);
         if header_size > HEADER_MAX_BUFFER_SIZE || header_size < 8 {
             // minimum size check avoids panic in FlatBuffers header decoding
             return Err(GeozeroError::GeometryFormat);
@@ -93,7 +95,7 @@ impl HttpFgbReader {
         let _header = size_prefixed_root_as_header(&header_buf)
             .map_err(|e| GeozeroError::Geometry(e.to_string()))?;
 
-        trace!("completed: opening http reader");
+        eprintln!("completed: opening http reader");
         Ok(HttpFgbReader {
             client,
             pos: 0,
@@ -136,9 +138,10 @@ impl HttpFgbReader {
         max_x: f64,
         max_y: f64,
     ) -> Result<usize> {
-        trace!("starting: select_bbox, traversing index");
+        eprintln!("starting: select_bbox, traversing index");
         // Read R-Tree index and build filter for features within bbox
         let header = self.fbs.header();
+        dbg!(&header);
         if header.index_node_size() == 0 {
             return Err(GeozeroError::Geometry("Index missing".to_string()));
         }
@@ -159,8 +162,12 @@ impl HttpFgbReader {
         self.feature_base = self.header_len() + index_size;
         self.pos = self.feature_base;
         self.count = list.len();
+        eprintln!("completed: select_bbox -- final feature list: {:?}", list);
+        eprintln!(
+            "Http stream search recorded state -- feature_base: {:?} pos: {:?}",
+            self.feature_base, self.pos
+        );
         self.item_filter = Some(list);
-        trace!("completed: select_bbox");
         Ok(self.count)
     }
     /// Number of selected features
@@ -173,9 +180,16 @@ impl HttpFgbReader {
         if self.feat_no >= self.count {
             return Ok(None);
         }
+
+        eprintln!("HttpReader get next feature");
+
         if let Some(filter) = &self.item_filter {
             let item = &filter[self.feat_no];
             self.pos = self.feature_base + item.offset;
+            eprintln!(
+                "reading from filter. Starting at item: {:?}. Advanced to position: {:?}",
+                item, self.pos
+            );
         }
         self.feat_no += 1;
         let mut bytes = BytesMut::from(

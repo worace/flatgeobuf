@@ -19,11 +19,13 @@ mod http {
 
     #[tokio::test]
     async fn http_bbox_read() -> Result<()> {
+        eprintln!("&&&&& http_bbox_read &&&&&&");
         let url = "https://github.com/flatgeobuf/flatgeobuf/raw/master/test/data/countries.fgb";
         let mut fgb = HttpFgbReader::open(url).await?;
         assert_eq!(fgb.header().geometry_type(), GeometryType::MultiPolygon);
         assert_eq!(fgb.header().features_count(), 179);
-        fgb.select_bbox(8.8, 47.2, 9.5, 55.3).await?;
+        let count_matching_filter = fgb.select_bbox(8.8, 47.2, 9.5, 55.3).await?;
+        assert_eq!(count_matching_filter, 6);
         let feature = fgb.next().await?.unwrap();
         let props = feature.properties()?;
         assert_eq!(props["name"], "Denmark".to_string());

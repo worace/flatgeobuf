@@ -679,12 +679,19 @@ impl PackedRTree {
         max_x: f64,
         max_y: f64,
     ) -> Result<Vec<SearchResultItem>> {
+        eprintln!("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+        eprintln!("%%%%%%%%% http_stream_search %%%%%%%%%%%");
         use std::collections::VecDeque;
 
         let item = NodeItem::new(min_x, min_y, max_x, max_y);
         let level_bounds = PackedRTree::generate_level_bounds(num_items, node_size);
         let leaf_nodes_offset = level_bounds.first().ok_or(GeozeroError::GeometryIndex)?.0;
-        debug!("http_stream_search - index_begin: {}, num_items: {}, node_size: {}, level_bounds: {:?}, GPS bounds:[({}, {}), ({},{})]", index_begin, num_items, node_size, &level_bounds, min_x, min_y, max_x, max_y);
+        // http_stream_search - index_begin: 616,
+        //                      num_items: 179,
+        //                      node_size: 16,
+        //                      level_bounds: [(13, 192), (1, 13), (0, 1)],
+        //                      query bounds:[(8.8, 47.2), (9.5,55.3)]
+        eprintln!("http_stream_search - index_begin: {}, num_items: {}, node_size: {}, level_bounds: {:?}, query bounds:[({}, {}), ({},{})]", index_begin, num_items, node_size, &level_bounds, min_x, min_y, max_x, max_y);
 
         #[derive(Debug, PartialEq, Eq)]
         struct NodeRange {
@@ -694,13 +701,13 @@ impl PackedRTree {
 
         let mut queue = VecDeque::new();
         queue.push_back(NodeRange {
-            nodes: 0..1,
+            nodes: 0..1, // [0,1)
             level: level_bounds.len() - 1,
         });
         let mut results = Vec::new();
 
         while let Some(next) = queue.pop_front() {
-            debug!(
+            eprintln!(
                 "popped node: {:?},  remaining queue len: {}",
                 next,
                 queue.len()
@@ -724,10 +731,12 @@ impl PackedRTree {
                     continue;
                 }
                 if is_leaf_node {
-                    results.push(SearchResultItem {
+                    let item = SearchResultItem {
                         offset: node_item.offset as usize,
                         index: pos - leaf_nodes_offset,
-                    });
+                    };
+                    eprintln!("^^^ Got leaf node hit: {:?}", &item);
+                    results.push(item);
                     continue;
                 }
 
@@ -757,9 +766,9 @@ impl PackedRTree {
                             .map(|head| head.level == next.level - 1)
                             .unwrap_or(false)
                         {
-                            debug!("requesting new NodeRange for offset: {} rather than merging with distant NodeRange: {:?}", offset, &tail);
+                            eprintln!("requesting new NodeRange for offset: {} rather than merging with distant NodeRange: {:?}", offset, &tail);
                         } else {
-                            debug!(
+                            eprintln!(
                                 "pushing new level for NodeRange: {:?} onto Queue with tail: {:?}",
                                 &node_range,
                                 queue.back()
