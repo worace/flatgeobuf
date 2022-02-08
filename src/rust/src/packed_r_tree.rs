@@ -273,12 +273,12 @@ pub fn calc_extent(nodes: &Vec<NodeItem>) -> NodeItem {
 
 /// Packed Hilbert R-Tree
 pub struct PackedRTree {
-    extent: NodeItem,
-    node_items: Vec<NodeItem>,
-    num_items: usize,
-    num_nodes: usize,
-    node_size: u16,
-    level_bounds: Vec<(usize, usize)>,
+    extent: NodeItem,                  // bbox of whole tree
+    node_items: Vec<NodeItem>, // flattened tree nodes: L0/1...L0/N,L1/1.....L1/N,L2/1....L2/N,etc
+    num_items: usize,          // num features
+    num_nodes: usize,          // num tree nodes: num features + num interior nodes
+    node_size: u16,            // number of child slots per tree node
+    level_bounds: Vec<(usize, usize)>, //  _reversed_ end-exclusive node index ranges for tree levels, i.e. [13, 192), [1, 13), [0, 1)
 }
 
 impl PackedRTree {
@@ -288,12 +288,25 @@ impl PackedRTree {
         assert!(node_size >= 2, "Node size must be at least 2");
         assert!(self.num_items > 0, "Cannot create empty tree");
         self.node_size = cmp::min(cmp::max(node_size, 2u16), 65535u16);
+        eprintln!("~~~~~~~~~~~");
         self.level_bounds = PackedRTree::generate_level_bounds(self.num_items, self.node_size);
+        // this is a janky way to get "num nodes..."
+        // it pulls the second boundary of level bounds which is
+        // bottom-to-top range ends of levels
+        // i.e.:
+        // [13, 192), [1, 13), [0, 1)
+        // -> 13, 192 -> .1 = 192
         self.num_nodes = self
             .level_bounds
             .first()
             .ok_or(GeozeroError::GeometryIndex)?
             .1;
+        eprintln!("------------------------");
+        eprintln!("generated level bounds");
+        dbg!(&self.level_bounds);
+        dbg!(&self.num_nodes);
+        // allocate vec to hold flattened tree index
+        // L0/1...L0/N,L1/1.....L1/N,L2/1....L2/N,etc
         self.node_items = vec![NodeItem::create(0); self.num_nodes]; // Quite slow!
         Ok(())
     }
@@ -310,6 +323,10 @@ impl PackedRTree {
             node_size: 0,
             level_bounds: Vec::new(),
         };
+        // init sets:
+        // * num_nodes
+        // * level bound ranges
+        // * allocates empty vector for nodes
         tree.init(node_size)?;
         for i in 0..tree.num_items {
             tree.node_items[(tree.num_nodes - tree.num_items + i)] = nodes[i].clone();
@@ -443,25 +460,42 @@ impl PackedRTree {
             level_bounds.push((level_offsets[i], level_offsets[i] + level_num_nodes[i]));
         }
         dbg!(&level_bounds);
+        // return level bounds in bottom-to-top order...
+        // [13, 192), [1, 13), [0, 1)
         level_bounds.reverse();
         dbg!(&level_bounds);
         level_bounds
     }
 
+    // generate_nodes populates the flattened tree, starting from
+    // the bound ranges
     fn generate_nodes(&mut self) {
+        eprintln!("****** Generate Nodes* ");
+        let total_levels = self.level_bounds.len();
         for i in 0..self.level_bounds.len() - 1 {
             let mut pos = self.level_bounds[i].0;
             let end = self.level_bounds[i].1;
             let mut newpos = self.level_bounds[i + 1].0;
+            dbg!(pos);
+            dbg!(end);
+            dbg!(newpos);
+            eprintln!(
+                "Populate tree level {:?} starting at pos {:?} going to {:?}",
+                i, pos, end
+            );
             while pos < end {
                 let mut node = NodeItem::create(pos as u64);
+                eprintln!("prep Node for position {:?}", pos);
                 for _j in 0..self.node_size {
                     if pos >= end {
                         break;
                     }
+                    eprintln!("expand node from {:?}", &self.node_items[pos]);
                     node.expand(&self.node_items[pos]);
+                    eprintln!("Node after expand: {:?}", node);
                     pos += 1;
                 }
+                eprintln!("Assign node to slot {:?}. Node: {:?}", newpos, &node);
                 self.node_items[newpos] = node;
                 newpos += 1;
             }
