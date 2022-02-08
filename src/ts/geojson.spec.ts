@@ -360,7 +360,7 @@ describe('geojson module', () => {
                 ).to.be.greaterThan(0);
         });
 
-        it('Should parse countries fgb produced from GDAL stream filter', async () => {
+        xit('Should parse countries fgb produced from GDAL stream filter', async () => {
             const r: Rect = { minX: 12, minY: 56, maxX: 12, maxY: 56 };
             const features = await takeAsync(
                 deserialize(
@@ -395,7 +395,7 @@ describe('geojson module', () => {
                 ).to.be.greaterThan(0);
         });
 
-        it('Should parse countries fgb produced from GDAL stream no filter', async () => {
+        xit('Should parse countries fgb produced from GDAL stream no filter', async () => {
             const buffer = readFileSync('./test/data/countries.fgb');
             const bytes = new Uint8Array(buffer);
             const stream = arrayToStream(bytes.buffer);
@@ -405,6 +405,30 @@ describe('geojson module', () => {
                 ) as AsyncGenerator
             );
             expect(features.length).to.eq(179);
+            for (const f of features)
+                expect(
+                    (f.geometry.coordinates[0] as number[]).length
+                ).to.be.greaterThan(0);
+        });
+
+        it('Should parse geoq countries output', async () => {
+            // const buffer = readFileSync('/tmp/geoq_countries.fgb');
+            // const bytes = new Uint8Array(buffer);
+            // const stream = arrayToStream(bytes.buffer);
+
+            const bbox = {
+              minX: 8.8,
+              minY: 47.2,
+              maxX: 9.5,
+              maxY: 55.3
+            };
+            const features = await takeAsync(
+                deserialize(
+                  "http://localhost:8000/geoq_countries.fgb",
+                  bbox
+                ) as AsyncGenerator
+            );
+            expect(features.length).to.eq(6);
             for (const f of features)
                 expect(
                     (f.geometry.coordinates[0] as number[]).length
