@@ -354,7 +354,7 @@ impl PackedRTree {
 
         for (i, node) in tree.node_items.iter().enumerate() {
             eprintln!(
-                "NodeItem {} = {:?}, {}, {}, {}, {}",
+                "NodeItem index: {} = offset: {:?}, bbox:  {}, {}, {}, {}",
                 i, node.offset, node.min_x, node.min_y, node.max_x, node.max_y
             );
         }
@@ -515,9 +515,9 @@ impl PackedRTree {
                     if pos >= end {
                         break;
                     }
-                    eprintln!("expand node from {:?}", &self.node_items[pos]);
+                    // eprintln!("expand node from {:?}", &self.node_items[pos]);
                     node.expand(&self.node_items[pos]);
-                    eprintln!("Node after expand: {:?}", node);
+                    // eprintln!("Node after expand: {:?}", node);
                     pos += 1;
                 }
                 eprintln!("Assign node to slot {:?}. Node: {:?}", newpos, &node);

@@ -129,7 +129,7 @@ fn json_to_fgb() -> Result<()> {
 }
 
 #[test]
-fn geozero_to_fgbzzz() -> Result<()> {
+fn geozero_to_fgb() -> Result<()> {
     use geozero::geojson::GeoJsonWriter;
 
     let mut fgb = FgbWriter::create("countries", GeometryType::MultiPolygon, |_, _| {})?;
