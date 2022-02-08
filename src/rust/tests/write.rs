@@ -129,7 +129,7 @@ fn json_to_fgb() -> Result<()> {
 }
 
 #[test]
-fn geozero_to_fgb() -> Result<()> {
+fn geozero_to_fgbzzz() -> Result<()> {
     use geozero::geojson::GeoJsonWriter;
 
     let mut fgb = FgbWriter::create("countries", GeometryType::MultiPolygon, |_, _| {})?;
@@ -142,19 +142,21 @@ fn geozero_to_fgb() -> Result<()> {
     fgb.write(&mut fout)?;
     fout.flush()?;
 
-    println!("read fgb");
-    let mut reader = BufReader::new(File::open("/tmp/test.fgb")?);
-    let mut fgb_reader = FgbReader::open(&mut reader)?;
-    fgb_reader.select_all()?;
-    println!("selected all!");
+    // println!("read fgb");
+    // let mut reader = BufReader::new(File::open("/tmp/test.fgb")?);
+    // let mut fgb_reader = FgbReader::open(&mut reader)?;
+    // // fgb_reader.select_all()?;
+    // let count_matching_filter = fgb_reader.select_bbox(8.8, 47.2, 9.5, 55.3)?;
+    // println!("selected count: {:?}", count_matching_filter);
 
-    let mut fout = BufWriter::new(File::create("/tmp/geojson_from_fgb.json")?);
-    let mut json = GeoJsonWriter::new(&mut fout);
-    println!("process features");
-    let res = fgb_reader.process_features(&mut json);
-    println!("processed all...!");
-    dbg!(&res);
-    res.unwrap();
-    // assert_eq!(1, 2);
+    // let mut fout = BufWriter::new(File::create("/tmp/geojson_from_fgb.json")?);
+    // let mut json = GeoJsonWriter::new(&mut fout);
+    // println!("process features");
+    // let res = fgb_reader.process_features(&mut json);
+    // println!("processed all...!");
+    // dbg!(&res);
+    // res.unwrap();
+    assert_eq!(1, 2);
+
     Ok(())
 }

@@ -36,12 +36,12 @@ impl geozero::FeatureAccess for FgbFeature {}
 impl GeozeroGeometry for FgbFeature {
     fn process_geom<P: GeomProcessor>(&self, processor: &mut P) -> Result<()> {
         eprintln!("process fgb feature geom");
-        dbg!(self.header());
+        // dbg!(self.header());
         let g_res = self
             .fbs_feature()
             .geometry()
             .ok_or(GeozeroError::GeometryFormat);
-        dbg!(&g_res);
+        // dbg!(&g_res);
         let geometry = g_res?;
         let geometry_type = self.header().geometry_type();
         geometry.process(processor, geometry_type)
@@ -81,7 +81,7 @@ impl geozero::FeatureProperties for FgbFeature {
         if columns_meta_res_base.is_none() {
             return Ok(false);
         }
-        dbg!(&columns_meta_res_base);
+        // dbg!(&columns_meta_res_base);
         let columns_meta = columns_meta_res_base.unwrap();
 
         // let columns_meta_res = columns_meta_res_base.ok_or(GeozeroError::GeometryFormat);

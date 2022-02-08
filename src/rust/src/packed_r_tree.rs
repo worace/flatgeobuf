@@ -61,6 +61,10 @@ impl NodeItem {
     }
 
     pub fn write<W: Write>(&self, wtr: &mut W) -> std::io::Result<()> {
+        eprintln!(
+            "Write Node {:?}, {:?}, {:?}, {:?}, {:?}",
+            self.min_x, self.min_y, self.max_x, self.max_y, self.offset,
+        );
         wtr.write_f64::<LittleEndian>(self.min_x)?;
         wtr.write_f64::<LittleEndian>(self.min_y)?;
         wtr.write_f64::<LittleEndian>(self.max_x)?;
@@ -272,6 +276,7 @@ pub fn calc_extent(nodes: &Vec<NodeItem>) -> NodeItem {
 }
 
 /// Packed Hilbert R-Tree
+#[derive(Debug)]
 pub struct PackedRTree {
     extent: NodeItem,                  // bbox of whole tree
     node_items: Vec<NodeItem>, // flattened tree nodes: L0/1...L0/N,L1/1.....L1/N,L2/1....L2/N,etc
@@ -327,11 +332,33 @@ impl PackedRTree {
         // * num_nodes
         // * level bound ranges
         // * allocates empty vector for nodes
-        tree.init(node_size)?;
+        tree.init(node_size).unwrap();
+
+        eprintln!("tree initialized -- num nodes: {:?}", tree.node_items.len());
         for i in 0..tree.num_items {
-            tree.node_items[(tree.num_nodes - tree.num_items + i)] = nodes[i].clone();
+            // Here we copy in the leaf node entries representing actual features
+            // in the features section of the buffer
+            let node_index = tree.num_nodes - tree.num_items + i;
+            eprintln!(
+                "fill feature (leaf) node num {:?} into node index: {:?}",
+                i, node_index
+            );
+            tree.node_items[node_index] = nodes[i].clone();
         }
         tree.generate_nodes();
+        eprintln!("___________Final Tree____________");
+        eprintln!(
+            "num_items: {:?}, num_nodes: {:?}, level_bounds: {:?}, extent: {:?}",
+            tree.num_items, tree.num_nodes, tree.level_bounds, tree.extent
+        );
+
+        for (i, node) in tree.node_items.iter().enumerate() {
+            eprintln!(
+                "NodeItem {} = {:?}, {}, {}, {}, {}",
+                i, node.offset, node.min_x, node.min_y, node.max_x, node.max_y
+            );
+        }
+
         Ok(tree)
     }
 
@@ -456,14 +483,12 @@ impl PackedRTree {
         // 1 node   12 nodes  179 nodes (leafs)
         let mut level_bounds = Vec::with_capacity(level_num_nodes.len());
         for i in 0..level_num_nodes.len() {
-            dbg!(&level_bounds);
+            eprintln!("Level bounds: {:?}", level_bounds);
             level_bounds.push((level_offsets[i], level_offsets[i] + level_num_nodes[i]));
         }
-        dbg!(&level_bounds);
         // return level bounds in bottom-to-top order...
         // [13, 192), [1, 13), [0, 1)
         level_bounds.reverse();
-        dbg!(&level_bounds);
         level_bounds
     }
 
@@ -471,7 +496,6 @@ impl PackedRTree {
     // the bound ranges
     fn generate_nodes(&mut self) {
         eprintln!("****** Generate Nodes* ");
-        let total_levels = self.level_bounds.len();
         for i in 0..self.level_bounds.len() - 1 {
             let mut pos = self.level_bounds[i].0;
             let end = self.level_bounds[i].1;
@@ -484,6 +508,7 @@ impl PackedRTree {
                 i, pos, end
             );
             while pos < end {
+                // TODO: pos here should be an index into features buffer
                 let mut node = NodeItem::create(pos as u64);
                 eprintln!("prep Node for position {:?}", pos);
                 for _j in 0..self.node_size {
@@ -639,6 +664,10 @@ impl PackedRTree {
             let next = queue.pop().ok_or(GeozeroError::GeometryIndex)?.0;
             let node_index = next.0;
             let level = next.1;
+            eprintln!(
+                "FGB Search queue: node_index: {:?} level: {:?}",
+                node_index, level
+            );
             let is_leaf_node = node_index >= num_nodes - num_items;
             // find the end index of the node
             let end = cmp::min(node_index + node_size as usize, level_bounds[level].1);
@@ -656,7 +685,11 @@ impl PackedRTree {
                         offset: node_item.offset as usize,
                         index: pos - leaf_nodes_offset,
                     });
+                } else if level == 0 {
+                    // ???
+                    continue;
                 } else {
+                    eprintln!("add to queue {:?}, level: {:?}", node_item, level);
                     queue.push(Reverse((node_item.offset as usize, level - 1)));
                 }
             }
@@ -813,6 +846,7 @@ impl PackedRTree {
 
     /// Write all index nodes
     pub fn stream_write<W: Write>(&self, out: &mut W) -> std::io::Result<()> {
+        eprintln!("stream_write tree -- {:?} nodes", self.node_items.len());
         for item in &self.node_items {
             item.write(out)?;
         }
@@ -1001,6 +1035,23 @@ fn tree_100_000_items_in_denmark() -> Result<()> {
             .intersects(&NodeItem::new(690407.0, 6063692.0, 811682.0, 6176467.0)));
     }
     Ok(())
+}
+
+#[test]
+fn test_generate_level_bounds() {
+    let mut bounds = PackedRTree::generate_level_bounds(100000, 16);
+    bounds.reverse();
+    assert_eq!(
+        bounds,
+        vec![
+            (0, 1),
+            (1, 3),
+            (3, 28),
+            (28, 419),
+            (419, 6669),
+            (6669, 106669)
+        ]
+    );
 }
 
 #[test]

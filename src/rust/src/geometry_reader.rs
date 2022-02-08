@@ -151,7 +151,7 @@ fn read_polygon<P: GeomProcessor>(
         // single ring
         processor.polygon_begin(tagged, 1, idx)?;
         println!("xy single ring");
-        dbg!(geometry.xy());
+        // dbg!(geometry.xy());
         let xy = geometry.xy().ok_or(GeozeroError::Coord)?;
         processor.linestring_begin(false, xy.len(), 0)?;
         read_coords(processor, geometry, 0, xy.len())?;
