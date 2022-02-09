@@ -424,12 +424,39 @@ describe('geojson module', () => {
             };
             const features = await takeAsync(
                 deserialize(
-                  "http://localhost:8000/geoq_countries.fgb",
+                  "http://localhost:8001/geoq_countries.fgb",
                   bbox
                 ) as AsyncGenerator
             );
             expect(features.length).to.eq(6);
           for (const f of features) {
+            console.log(JSON.stringify(f));
+            expect(
+              (f.geometry.coordinates[0] as number[]).length
+            ).to.be.greaterThan(0);
+          }
+        });
+
+        it('Should parse geoq australia output', async () => {
+            // const buffer = readFileSync('/tmp/geoq_countries.fgb');
+            // const bytes = new Uint8Array(buffer);
+            // const stream = arrayToStream(bytes.buffer);
+
+            const bbox = {
+              minX: 151.180350,
+              minY: -33.894517,
+              maxX: 151.182174,
+              maxY: -33.893128
+            };
+            const features = await takeAsync(
+                deserialize(
+                  "http://localhost:8001/australia.fgb",
+                  bbox
+                ) as AsyncGenerator
+            );
+            expect(features.length).to.eq(41);
+          for (const f of features) {
+            f['properties'] = {};
             console.log(JSON.stringify(f));
             expect(
               (f.geometry.coordinates[0] as number[]).length
