@@ -429,10 +429,12 @@ describe('geojson module', () => {
                 ) as AsyncGenerator
             );
             expect(features.length).to.eq(6);
-            for (const f of features)
-                expect(
-                    (f.geometry.coordinates[0] as number[]).length
-                ).to.be.greaterThan(0);
+          for (const f of features) {
+            console.log(JSON.stringify(f));
+            expect(
+              (f.geometry.coordinates[0] as number[]).length
+            ).to.be.greaterThan(0);
+          }
         });
 
         it('Should parse UScounties fgb produced from GDAL', () => {
