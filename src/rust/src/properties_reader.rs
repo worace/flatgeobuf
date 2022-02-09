@@ -35,7 +35,6 @@ impl geozero::FeatureAccess for FgbFeature {}
 
 impl GeozeroGeometry for FgbFeature {
     fn process_geom<P: GeomProcessor>(&self, processor: &mut P) -> Result<()> {
-        eprintln!("process fgb feature geom");
         // dbg!(self.header());
         let g_res = self
             .fbs_feature()

@@ -146,11 +146,9 @@ fn read_polygon<P: GeomProcessor>(
     tagged: bool,
     idx: usize,
 ) -> Result<()> {
-    println!("read polygon...");
     if geometry.ends().is_none() || geometry.ends().ok_or(GeozeroError::GeometryFormat)?.len() < 2 {
         // single ring
         processor.polygon_begin(tagged, 1, idx)?;
-        println!("xy single ring");
         // dbg!(geometry.xy());
         let xy = geometry.xy().ok_or(GeozeroError::Coord)?;
         processor.linestring_begin(false, xy.len(), 0)?;
